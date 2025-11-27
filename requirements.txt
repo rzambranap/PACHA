@@ -1,0 +1,19 @@
+# Core dependencies
+pandas
+matplotlib
+numpy
+xarray
+scipy
+
+# Development dependencies
+setuptools
+notebook
+black
+flake8
+pre-commit
+pytest
+
+# Optional dependencies for full functionality
+# haversine
+# global-land-mask
+# lat-lon-parser
