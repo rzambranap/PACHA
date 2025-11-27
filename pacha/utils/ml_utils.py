@@ -74,7 +74,6 @@ def split_dataset(ds,
     nsamples = ds['time'].size
     split_ratios = [training, testing]
     train_elts, test_elts = [np.floor(i * nsamples).astype(int) for i in split_ratios]
-    print(train_elts, test_elts)
 
     if not all(x > 0 for x in [train_elts, test_elts]):
         raise ValueError(f'Not enough elements, splits of {train_elts, test_elts}')

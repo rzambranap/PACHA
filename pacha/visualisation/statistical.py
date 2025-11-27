@@ -60,7 +60,7 @@ def plot_fit(x, y, ax=None, print_vals=False):
             print('slope', slope)
             print('intercept', intercept)
             print('pvalue', p_value)
-            print('std_errr', std_err)
+            print('std_err', std_err)
 
         if ax is None:
             ax = plt.gca()

@@ -354,7 +354,7 @@ def determine_analysis_scope_for_gauge_network(
     gauge_data = pd.concat([full_gauge_dataset.loc[day] for day in dates_to_test])
     stations = gauge_data.columns.tolist()
 
-    summary_of_ellegible_stations = {}
+    summary_of_eligible_stations = {}
     for station in stations:
         ds = gauge_data.loc[:, station]
         ds_acc_daily = ds.groupby(pd.Grouper(freq='D')).sum()
@@ -373,7 +373,7 @@ def determine_analysis_scope_for_gauge_network(
         if npoints > min_gauge_points:
             time_step = gauge_data_for_station.index[1] - gauge_data_for_station.index[0]
             mins = int(((time_step.to_numpy().astype(float)) / 1e9) / 60)
-            summary_of_ellegible_stations[station] = {
+            summary_of_eligible_stations[station] = {
                 'npoints': npoints,
                 'dates': dates_for_station,
                 'time_step': mins,
@@ -381,4 +381,4 @@ def determine_analysis_scope_for_gauge_network(
                 'gauge_data_for_station': gauge_data_for_station
             }
 
-    return pd.DataFrame.from_dict(summary_of_ellegible_stations).T
+    return pd.DataFrame.from_dict(summary_of_eligible_stations).T

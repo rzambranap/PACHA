@@ -97,12 +97,13 @@ def match_closest_time_indexes(df1, df2):
     --------
     >>> matched = match_closest_time_indexes(radar_df, satellite_df)
     """
-    matched_df = pd.DataFrame(columns=df1.columns)
+    matched_rows = []
 
     for idx1, row1 in df1.iterrows():
         closest_idx2 = (df2.index - idx1).argmin()
         matched_row = pd.concat([row1, df2.iloc[closest_idx2]])
-        matched_df = matched_df.append(matched_row, ignore_index=True)
+        matched_rows.append(matched_row)
 
+    matched_df = pd.concat(matched_rows, axis=1).T
     matched_df.index = df1.index
     return matched_df
