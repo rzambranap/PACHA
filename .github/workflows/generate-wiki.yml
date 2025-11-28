@@ -1,0 +1,67 @@
+name: Generate Wiki Documentation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'pacha/**/*.py'
+      - 'scripts/generate_wiki.py'
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  generate-wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Generate Wiki Documentation
+        run: python scripts/generate_wiki.py
+
+      - name: Checkout Wiki
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: wiki-repo
+          token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Initialize Wiki if not exists
+        run: |
+          if [ ! -d "wiki-repo/.git" ]; then
+            mkdir -p wiki-repo
+            cd wiki-repo
+            git init
+            git remote add origin https://github.com/${{ github.repository }}.wiki.git
+          fi
+
+      - name: Update Wiki
+        run: |
+          cp wiki/*.md wiki-repo/
+          cd wiki-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Auto-update wiki documentation from docstrings"
+            # Detect the default branch name and push
+            DEFAULT_BRANCH=$(git remote show origin | grep 'HEAD branch' | cut -d' ' -f5)
+            if [ -z "$DEFAULT_BRANCH" ]; then
+              DEFAULT_BRANCH="master"
+            fi
+            echo "Pushing to branch: $DEFAULT_BRANCH"
+            git push origin HEAD:$DEFAULT_BRANCH
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
