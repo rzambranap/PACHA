@@ -97,7 +97,21 @@ regional_data = get_data_in_bbox(satellite_data, bbox)
 
 ## Documentation
 
-To browse the package documentation:
+### Wiki
+
+The package documentation is automatically generated from docstrings and published to the [GitHub Wiki](../../wiki). The wiki is updated automatically when changes are pushed to the `main` branch.
+
+To generate the wiki documentation locally:
+
+```bash
+python scripts/generate_wiki.py
+```
+
+This creates Markdown files in the `wiki/` directory.
+
+### Interactive Documentation
+
+To browse the package documentation interactively:
 
 ```bash
 python -m pydoc -b
