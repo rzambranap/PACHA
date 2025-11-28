@@ -55,7 +55,13 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "Auto-update wiki documentation from docstrings"
-            git push origin HEAD:master || git push origin HEAD:main
+            # Detect the default branch name and push
+            DEFAULT_BRANCH=$(git remote show origin | grep 'HEAD branch' | cut -d' ' -f5)
+            if [ -z "$DEFAULT_BRANCH" ]; then
+              DEFAULT_BRANCH="master"
+            fi
+            echo "Pushing to branch: $DEFAULT_BRANCH"
+            git push origin HEAD:$DEFAULT_BRANCH
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

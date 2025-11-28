@@ -163,14 +163,21 @@ def format_docstring(docstring, indent=0):
     # Remove common leading whitespace
     if len(lines) > 1:
         # Find minimum indentation (excluding empty lines)
-        min_indent = float('inf')
+        min_indent = None
         for line in lines[1:]:
             stripped = line.lstrip()
             if stripped:
-                min_indent = min(min_indent, len(line) - len(stripped))
-        if min_indent < float('inf'):
-            lines = [lines[0]] + [line[min_indent:] if len(line) > min_indent else line
-                                   for line in lines[1:]]
+                indent = len(line) - len(stripped)
+                if min_indent is None or indent < min_indent:
+                    min_indent = indent
+        if min_indent is not None:
+            dedented_lines = []
+            for line in lines[1:]:
+                if len(line) > min_indent:
+                    dedented_lines.append(line[min_indent:])
+                else:
+                    dedented_lines.append(line)
+            lines = [lines[0]] + dedented_lines
 
     return '\n'.join(lines)
 
