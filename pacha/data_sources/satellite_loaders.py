@@ -215,3 +215,9 @@ def load_daily_imerg(date, filepaths_df, field=None):
         return ds[field]
     else:
         return ds
+
+
+def load_v7_by_date(sat_v7, date):
+    daily_spp = xr.open_mfdataset(sat_v7.l2_catalog.loc[str(date), 'paths'].tolist(), decode_timedelta=True)['precipitation']
+    return daily_spp
+

@@ -78,3 +78,40 @@ def plot_fit(x, y, ax=None, print_vals=False):
         print('Error fitting data')
         print(E)
         return 0
+
+
+def plot_histogram_line(df, column, bins=30, density=False, ax=None, **kwargs):
+    """
+    Plots a histogram as a step line (with straight tops) for a given DataFrame column.
+
+    Parameters:
+    - df: Pandas DataFrame
+    - column: Column name as a string
+    - bins: Number of bins (default=30)
+    - density: Whether to normalize to a probability density (default=True)
+    - color: Line color (default='blue')
+    - ax: Matplotlib Axes object (optional)
+    - **kwargs: Additional parameters for matplotlib's step function (e.g., linestyle, linewidth)
+    """
+    if column not in df:
+        raise ValueError(f"Column '{column}' not found in DataFrame.")
+
+    data = df[column].dropna()  # Drop NaNs to avoid errors
+
+    # Compute histogram
+    counts, bin_edges = np.histogram(data, bins=bins, density=density)
+
+    # Create figure if no axis is provided
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(8, 5))
+
+    # Plot step line
+    ax.step(bin_edges[:-1], counts, where='post', **kwargs)
+    ax.set_xlabel(column)
+    ax.set_ylabel("Density" if density else "Count")
+    ax.set_title(f"Histogram of {column} (Step Plot)")
+    ax.grid(True)
+
+    # Show only if no external figure is used
+    if ax is None:
+        plt.show()

@@ -36,6 +36,14 @@ class Gauges:
     >>> gauges.calc_distance_to_point((-5.0, -39.0))
     """
 
+    # mapping of column names to standard names
+    colname_mappings = {
+        'name': ['NOM_USUEL', 'name', 'station_name', 'STATION_NAME'],
+        'lat': ['lat', 'latitude', 'LAT'],
+        'lon': ['lon', 'longitude', 'LON'],
+        'alt': ['alt', 'altitude', 'ALT'],
+    }
+
     def __init__(self, data_path, meta_path):
         """Initialize gauge network from data and metadata files."""
         meta = pd.read_csv(meta_path, index_col=0)
@@ -44,6 +52,12 @@ class Gauges:
             data.columns = data.columns.astype(int)
         self.data = data
         self.metadata = meta
+        # standardize metadata column names
+        for std_name, possible_names in self.colname_mappings.items():
+            for col in possible_names:
+                if col in self.metadata.columns:
+                    self.metadata = self.metadata.rename(columns={col: std_name})
+                    break
         return
 
     def calc_distance_to_point(self, point, return_df=False):
