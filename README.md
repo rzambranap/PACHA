@@ -29,7 +29,11 @@ A Python package for precipitation data fusion and analysis, combining data from
 
 ```bash
 pip install -e .
+pip install ipykernel
+pip install haversine
+pip install global_land_mask
 ```
+
 
 ### Full Installation (with all optional dependencies)
 
