@@ -1,6 +1,6 @@
 # PACHA
 
-**Precipitation Analysis & Correction for Hydrological Applications**
+## Precipitation Analysis & Correction for Hydrological Applications
 
 A Python package for precipitation data fusion and analysis, combining data from satellites, weather radars, rain gauges, and commercial microwave links for improved precipitation estimation.
 
@@ -33,7 +33,6 @@ pip install ipykernel
 pip install haversine
 pip install global_land_mask
 ```
-
 
 ### Full Installation (with all optional dependencies)
 
