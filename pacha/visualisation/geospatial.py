@@ -595,6 +595,9 @@ def plot_raster_with_map(raster_xr: (xr.DataArray | xr.Dataset),
             raise ValueError("The requested time step range (starting_index + plot_n_tsteps) exceeds the available number of time steps (ntime).")
     
     elif 'time' in raster_xr.dims:
+        ntime = raster_xr.sizes['time']
+        if starting_index < 0 or starting_index >= ntime:
+            raise ValueError(f"starting_index ({starting_index}) is out of bounds for time dimension of size {ntime}.")
         raster_xr = raster_xr.isel(time=starting_index)
 
     if match_scale:
