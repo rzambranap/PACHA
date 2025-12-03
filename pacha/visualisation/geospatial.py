@@ -547,7 +547,7 @@ def plot_raster_with_map(raster_xr: (xr.DataArray | xr.Dataset),
                          var: list = None,
                          vmax: float = None,
                          vmin: float = None,
-                         plot_n_tsteps: float = None,
+                         plot_n_tsteps: int = None,
                          starting_index: int = 0,
                          **kwargs):
     """
