@@ -548,7 +548,7 @@ def plot_raster_with_map(raster_xr: (xr.DataArray | xr.Dataset),
                          vmax: float = None,
                          vmin: float = None,
                          plot_n_tsteps: float = None,
-                         starting_index: int = 0, 
+                         starting_index: int = 0,
                          **kwargs):
     """
     Plot a raster xarray DataArray or Dataset with map features.
