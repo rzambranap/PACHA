@@ -665,6 +665,15 @@ def plot_raster_with_map(raster_xr: (xr.DataArray | xr.Dataset),
         if discretize:
             arr.plot(x='lon', y='lat', ax=ax, **kwargs)
         else:
+            # Ensure global_min and global_max are defined
+            try:
+                global_min
+            except NameError:
+                global_min = float(arr.min())
+            try:
+                global_max
+            except NameError:
+                global_max = float(arr.max())
             arr.plot(x='lon', y='lat', ax=ax, vmin=global_min, vmax=global_max, **kwargs)
         if 'time' in arr.dims:
             title_time = np.datetime_as_string(arr['time'].values, unit='h')
