@@ -582,7 +582,7 @@ def plot_raster_with_map(raster_xr: (xr.DataArray | xr.Dataset),
     else:
         raise ValueError("raster_xr must be an xarray DataArray or Dataset.\nraster_xr type: {}".format(type(raster_xr)))
 
-    if isinstance(raster_xr, xr.Dataset) and nvars==1:
+    if isinstance(raster_xr, xr.Dataset) and nvars == 1:
         raster_xr = raster_xr[var[0]]
 
     # verify lon and lat are in the dataset
