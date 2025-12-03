@@ -540,10 +540,6 @@ def calculate_plotting_levels(das_to_plot, nlevs=None, max_global=None):
 
 
 # plot raster with simple map as background
-import xarray as xr
-import numpy as np
-import matplotlib.pyplot as plt
-import cartopy.crs as ccrs
 
 def plot_raster_with_map(raster_xr: (xr.DataArray | xr.Dataset),
                          match_scale: bool = True,
