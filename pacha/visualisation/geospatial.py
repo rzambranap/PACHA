@@ -645,7 +645,7 @@ def plot_raster_with_map(raster_xr: (xr.DataArray | xr.Dataset),
     plot_arrays = []
     if isinstance(raster_xr, xr.Dataset):
         if plot_n_tsteps is not None and 'time' in raster_xr.dims:
-            for t in range(starting_index, plot_n_tsteps):
+            for t in range(starting_index, starting_index +plot_n_tsteps):
                 for v in var:
                     plot_arrays.append(raster_xr[v].isel(time=t))
         else:
@@ -653,7 +653,7 @@ def plot_raster_with_map(raster_xr: (xr.DataArray | xr.Dataset),
                 plot_arrays.append(raster_xr[v])
     else:
         if plot_n_tsteps is not None and 'time' in raster_xr.dims:
-            for t in range(starting_index, plot_n_tsteps):
+            for t in range(starting_index, starting_index + plot_n_tsteps):
                 plot_arrays.append(raster_xr.isel(time=t))
         else:
             plot_arrays.append(raster_xr)
