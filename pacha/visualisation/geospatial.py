@@ -537,3 +537,150 @@ def calculate_plotting_levels(das_to_plot, nlevs=None, max_global=None):
             nlevs = vmax // 1 + 1
         lvs = np.linspace(int(vmin // 1), vmax, nlevs)
     return lvs
+
+
+# plot raster with simple map as background
+
+def plot_raster_with_map(raster_xr: (xr.DataArray | xr.Dataset),
+                         match_scale: bool = True,
+                         discretize: bool = False,
+                         var: list = None,
+                         vmax: float = None,
+                         vmin: float = None,
+                         plot_n_tsteps: int = None,
+                         starting_index: int = 0,
+                         **kwargs):
+    """
+    Plot a raster xarray DataArray or Dataset with map features.
+
+    Parameters
+    ----------
+    raster_xr : (xr.DataArray | xr.Dataset)
+        Raster data to plot.
+    match_scale : bool, optional
+        If True, use the same color scale for all plots. Default is True.
+    discretize : bool, optional
+        If True, use discrete color levels. Default is False.
+    var : list, optional
+        List of variable names to plot. Default is None (plot all variables).
+    vmax : float, optional
+        Maximum value for color scale. Default is None.
+    vmin : float, optional
+        Minimum value for color scale. Default is None.
+
+    Returns
+    -------
+    None
+    """
+    if isinstance(raster_xr, xr.Dataset):
+        if var is None:
+            var = list(raster_xr.data_vars)
+        nvars = len(var)
+    elif isinstance(raster_xr, xr.DataArray):
+        nvars = 1
+        var = [raster_xr.name]
+    else:
+        raise ValueError("raster_xr must be an xarray DataArray or Dataset.\nraster_xr type: {}".format(type(raster_xr)))
+
+    if isinstance(raster_xr, xr.Dataset) and nvars == 1:
+        raster_xr = raster_xr[var[0]]
+
+    # verify lon and lat are in the dataset
+    if 'lon' not in raster_xr.coords or 'lat' not in raster_xr.coords:
+        raise ValueError("raster_xr must have 'lon' and 'lat' coordinates.")
+
+    if plot_n_tsteps is not None and 'time' in raster_xr.dims:
+        ntime = raster_xr.sizes['time']
+        if starting_index + plot_n_tsteps > ntime:
+            raise ValueError("The requested time step range (starting_index + plot_n_tsteps) exceeds the available number of time steps (ntime).")
+    
+    elif 'time' in raster_xr.dims:
+        ntime = raster_xr.sizes['time']
+        if starting_index < 0 or starting_index >= ntime:
+            raise ValueError(f"starting_index ({starting_index}) is out of bounds for time dimension of size {ntime}.")
+        raster_xr = raster_xr.isel(time=starting_index)
+
+    if match_scale:
+        # determine global min and max
+        if isinstance(raster_xr, xr.Dataset):
+            global_min = np.min(np.array([raster_xr[v].min().values for v in var]))
+            global_max = np.max(np.array([raster_xr[v].max().values for v in var]))
+        else:
+            global_min = raster_xr.min().values
+            global_max = raster_xr.max().values
+    
+    if vmax is not None:
+        global_max = vmax
+    if vmin is not None:
+        global_min = vmin
+    if discretize:
+        if isinstance(raster_xr, xr.Dataset):
+            lvs = calculate_plotting_levels([raster_xr[v] for v in var], max_global=vmax)
+        else:
+            lvs = calculate_plotting_levels([raster_xr], max_global=vmax)
+
+        kwargs['levels'] = lvs
+    
+    if plot_n_tsteps is not None:
+        ncols = nvars
+        nrows = plot_n_tsteps
+        figsize = ((4*ncols), (4*nrows))
+        fig, axes = plt.subplots(
+            nrows, ncols,
+            subplot_kw=dict(projection=ccrs.PlateCarree()),
+            figsize=figsize
+        )
+    else:
+        ncols = nvars
+        nrows = 1
+        figsize = (4 * ncols, 4)
+        fig, axes = plt.subplots(
+            nrows, ncols,
+            subplot_kw=dict(projection=ccrs.PlateCarree()),
+            figsize=figsize
+        )
+    
+    # make list of single arrays to plot
+    naxes = nrows * ncols
+    plot_arrays = []
+    if isinstance(raster_xr, xr.Dataset):
+        if plot_n_tsteps is not None and 'time' in raster_xr.dims:
+            for t in range(starting_index, plot_n_tsteps):
+                for v in var:
+                    plot_arrays.append(raster_xr[v].isel(time=t))
+        else:
+            for v in var:
+                plot_arrays.append(raster_xr[v])
+    else:
+        if plot_n_tsteps is not None and 'time' in raster_xr.dims:
+            for t in range(starting_index, plot_n_tsteps):
+                plot_arrays.append(raster_xr.isel(time=t))
+        else:
+            plot_arrays.append(raster_xr)
+    
+    for i in range(min(naxes, len(plot_arrays))):
+        if naxes == 1:
+            ax = axes
+        else:
+            ax = axes.flatten()[i]
+        plot_simple_map(ax=ax)
+        arr = plot_arrays[i]
+        if discretize:
+            arr.plot(x='lon', y='lat', ax=ax, **kwargs)
+        else:
+            # Ensure global_min and global_max are defined
+            try:
+                global_min
+            except NameError:
+                global_min = float(arr.min())
+            try:
+                global_max
+            except NameError:
+                global_max = float(arr.max())
+            arr.plot(x='lon', y='lat', ax=ax, vmin=global_min, vmax=global_max, **kwargs)
+        if 'time' in arr.dims:
+            title_time = np.datetime_as_string(arr['time'].values, unit='h')
+            ax.set_title(f"{arr.name} - {title_time}")
+        else:
+            ax.set_title(f"{arr.name}")
+    return
