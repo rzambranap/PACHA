@@ -217,7 +217,14 @@ def load_daily_imerg(date, filepaths_df, field=None):
         return ds
 
 
-def load_v7_by_date(sat_v7, date):
-    daily_spp = xr.open_mfdataset(sat_v7.l2_catalog.loc[str(date), 'paths'].tolist(), decode_timedelta=True)['precipitation']
+def load_v7_by_date(sat_v7, date, field=None):
+    daily_spp = xr.open_mfdataset(sat_v7.l2_catalog.loc[str(date), 'paths'].tolist(), decode_timedelta=True)
+    if field:
+        return daily_spp[field]
     return daily_spp
 
+def load_v6_by_date(sat_v6, date, field=None):
+    daily_spp = xr.open_mfdataset(sat_v6.l2_catalog.loc[str(date), 'paths'].tolist(), group='Grid', decode_timedelta=True)
+    if field:
+        return daily_spp[field]
+    return daily_spp
