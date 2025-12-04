@@ -698,6 +698,8 @@ def save_output(
         logger.info(f"Created output directory: {output_dir}")
 
     # Default encoding with compression (if netCDF4 is available)
+    logger.info(f"Saving output to: {output_path}")
+
     if encoding is None:
         try:
             # Try with compression (requires netCDF4 engine)
@@ -718,7 +720,6 @@ def save_output(
     else:
         ds.to_netcdf(output_path, encoding=encoding)
 
-    logger.info(f"Saving output to: {output_path}")
     logger.info(f"Successfully saved: {output_path}")
 
     return output_path
