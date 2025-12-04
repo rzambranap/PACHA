@@ -50,6 +50,14 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+# Import existing PACHA utilities
+from pacha.utils.file_utils import get_df_dates_filepaths
+from pacha.data_sources.satellite_loaders import (
+    load_daily_gsmap,
+    load_daily_imerg,
+)
+from pacha.L1_processing.common import normalize_geospatial_ds
+
 # Configure module logger
 logger = logging.getLogger(__name__)
 
@@ -81,13 +89,15 @@ def load_dataset(
     input_path: str,
     product_type: str,
     date: str,
-    precip_variable: Optional[str] = None
+    precip_variable: Optional[str] = None,
+    filepaths_df: Optional[pd.DataFrame] = None
 ) -> xr.Dataset:
     """
     Load and normalize a precipitation dataset for a given date.
 
-    This function loads data files for the specified date and normalizes
-    the dataset to ensure consistent time coordinates and dimension ordering.
+    This function loads data files for the specified date using existing
+    PACHA loaders and normalizes the dataset to ensure consistent time
+    coordinates and dimension ordering.
 
     Parameters
     ----------
@@ -100,6 +110,9 @@ def load_dataset(
     precip_variable : str, optional
         Name of the precipitation variable in the dataset. If None, uses
         the default for the product type.
+    filepaths_df : pd.DataFrame, optional
+        Pre-built file catalog DataFrame from get_df_dates_filepaths.
+        If None, builds catalog automatically.
 
     Returns
     -------
@@ -130,16 +143,41 @@ def load_dataset(
     if precip_variable is None:
         precip_variable = config['precip_variable']
 
-    # Try to find and load data files
-    # This is a simplified implementation - actual file loading may vary
-    # based on the data source organization
+    # Build file catalog if not provided
+    if filepaths_df is None:
+        try:
+            filepaths_df = get_df_dates_filepaths(input_path)
+        except Exception as e:
+            logger.error(f"Failed to build file catalog: {e}")
+            raise FileNotFoundError(
+                f"Could not build file catalog from {input_path}: {e}"
+            )
+
+    # Load data using existing PACHA loaders
     try:
-        ds = _load_files_for_date(input_path, product_type, date, precip_variable)
+        if product_type == 'gsmap':
+            ds = load_daily_gsmap(date, filepaths_df)
+            # Convert DataArray to Dataset if needed
+            if isinstance(ds, xr.DataArray):
+                ds = ds.to_dataset(name=precip_variable)
+        elif product_type == 'imerg':
+            ds = load_daily_imerg(date, filepaths_df, field=precip_variable)
+            # Ensure it's a Dataset
+            if isinstance(ds, xr.DataArray):
+                ds = ds.to_dataset(name=precip_variable)
+        else:
+            # For radar or other products, use generic file loading
+            ds = _load_files_for_date(input_path, product_type, date,
+                                      precip_variable, filepaths_df)
+    except KeyError:
+        raise FileNotFoundError(
+            f"No data files found for date {date} in catalog"
+        )
     except Exception as e:
         logger.error(f"Failed to load data: {e}")
         raise
 
-    # Normalize the dataset
+    # Normalize the dataset using existing L1 processing function
     ds = normalize_dataset(ds, product_type)
 
     logger.info(f"Successfully loaded dataset with {len(ds.time)} timesteps")
@@ -151,10 +189,13 @@ def _load_files_for_date(
     input_path: str,
     product_type: str,
     date: str,
-    precip_variable: str
+    precip_variable: str,
+    filepaths_df: Optional[pd.DataFrame] = None
 ) -> xr.Dataset:
     """
     Internal function to load data files for a specific date.
+
+    Uses the PACHA file utilities to locate and load files.
 
     Parameters
     ----------
@@ -166,30 +207,28 @@ def _load_files_for_date(
         Date string in 'YYYY-MM-DD' format.
     precip_variable : str
         Name of the precipitation variable.
+    filepaths_df : pd.DataFrame, optional
+        Pre-built file catalog. If None, builds from input_path.
 
     Returns
     -------
     xr.Dataset
         Loaded dataset.
     """
-    import glob
-    import os
+    # Build file catalog if not provided
+    if filepaths_df is None:
+        filepaths_df = get_df_dates_filepaths(input_path)
 
-    date_dt = pd.to_datetime(date)
-    date_str = date_dt.strftime('%Y%m%d')
-
-    # Look for NetCDF files matching the date
-    patterns = [
-        os.path.join(input_path, f'*{date_str}*.nc'),
-        os.path.join(input_path, f'*{date_str}*.nc4'),
-        os.path.join(input_path, date_str[:4], date_str[4:6], f'*{date_str}*.nc'),
-    ]
-
-    files = []
-    for pattern in patterns:
-        files.extend(glob.glob(pattern))
-
-    if not files:
+    # Get files for the specified date
+    try:
+        daily_files = filepaths_df.loc[date]
+        if isinstance(daily_files, pd.Series):
+            # Single file
+            files = [daily_files['paths']] if isinstance(daily_files['paths'], str) \
+                else daily_files['paths'].tolist()
+        else:
+            files = daily_files['paths'].tolist()
+    except KeyError:
         raise FileNotFoundError(
             f"No data files found for date {date} in {input_path}"
         )
@@ -209,8 +248,8 @@ def normalize_dataset(ds: xr.Dataset, product_type: str) -> xr.Dataset:
     """
     Normalize a dataset to ensure consistent structure.
 
-    Normalizes time coordinates to pandas datetime objects, ensures
-    consistent dimension ordering (time, lat, lon), and sorts by time.
+    Uses the existing normalize_geospatial_ds function from L1 processing
+    to ensure consistent time coordinates and dimension ordering (time, lat, lon).
 
     Parameters
     ----------
@@ -231,22 +270,7 @@ def normalize_dataset(ds: xr.Dataset, product_type: str) -> xr.Dataset:
     """
     logger.debug("Normalizing dataset...")
 
-    # Convert time to datetime if needed
-    if 'time' in ds.dims:
-        try:
-            time_values = pd.to_datetime(ds.time.values)
-            ds = ds.assign_coords(time=time_values)
-        except Exception:
-            pass  # Keep original time if conversion fails
-
-    # Sort by time
-    if 'time' in ds.dims:
-        ds = ds.sortby('time')
-
-    # Ensure proper dimension order
-    expected_dims = ['time', 'lat', 'lon']
-
-    # Handle alternative coordinate names
+    # Handle alternative coordinate names before normalization
     dim_mapping = {
         'latitude': 'lat',
         'longitude': 'lon',
@@ -258,9 +282,21 @@ def normalize_dataset(ds: xr.Dataset, product_type: str) -> xr.Dataset:
         if old_name in ds.dims and new_name not in ds.dims:
             ds = ds.rename({old_name: new_name})
 
-    # Transpose if all expected dimensions exist
-    if all(dim in ds.dims for dim in expected_dims):
-        ds = ds.transpose('time', 'lat', 'lon', ...)
+    # Use the existing L1 processing normalization function
+    # This handles time conversion, coordinate rounding, sorting, and transposing
+    try:
+        if 'lat' in ds.dims and 'lon' in ds.dims and 'time' in ds.dims:
+            ds = normalize_geospatial_ds(ds)
+    except Exception as e:
+        logger.warning(f"Could not apply full normalization: {e}")
+        # Fall back to basic normalization
+        if 'time' in ds.dims:
+            try:
+                time_values = pd.to_datetime(ds.time.values)
+                ds = ds.assign_coords(time=time_values)
+            except Exception:
+                pass
+            ds = ds.sortby('time')
 
     return ds
 
@@ -366,6 +402,7 @@ def gap_fill(
     Fill temporal gaps in the precipitation dataset.
 
     Interpolates or fills missing timesteps based on the specified method.
+    Handles edge cases where missing data is at the first or last timestep.
 
     Parameters
     ----------
@@ -396,6 +433,11 @@ def gap_fill(
     -----
     The output dataset includes a 'gap_filled_mask' variable indicating
     which timesteps were filled.
+
+    Edge cases handled:
+    - Missing first timestep: Uses backward fill or fill_value
+    - Missing last timestep: Uses forward fill or fill_value
+    - Large gaps at boundaries: Filled with fill_value
 
     Examples
     --------
@@ -428,22 +470,49 @@ def gap_fill(
     # Create mask of original data
     is_original = np.isin(complete_times, original_times)
 
+    # Check for edge cases: missing first or last timesteps
+    missing_at_start = not is_original[0] if len(is_original) > 0 else False
+    missing_at_end = not is_original[-1] if len(is_original) > 0 else False
+
+    if missing_at_start:
+        logger.warning("Missing data at first timestep - will use fill_value or bfill")
+    if missing_at_end:
+        logger.warning("Missing data at last timestep - will use fill_value or ffill")
+
     # Reindex to complete time series
     ds_complete = ds.reindex(time=complete_times)
 
-    # Apply interpolation method
+    # Apply interpolation method with edge case handling
     if method == 'zero':
         ds_filled = ds_complete.fillna(fill_value)
     elif method == 'previous':
-        ds_filled = ds_complete.ffill(dim='time')
-        ds_filled = ds_filled.fillna(fill_value)  # Fill leading NaNs
+        # Forward fill, then backward fill for leading NaNs, then fill_value
+        try:
+            ds_filled = ds_complete.ffill(dim='time')
+            ds_filled = ds_filled.bfill(dim='time')  # Handle leading NaNs
+        except (ModuleNotFoundError, RuntimeError):
+            # ffill/bfill requires bottleneck or numbagg; fall back to fillna
+            logger.warning("ffill/bfill not available, using fillna as fallback")
+            ds_filled = ds_complete
+        ds_filled = ds_filled.fillna(fill_value)  # Final fallback
     elif method in ['linear', 'nearest']:
+        # Interpolate, then handle boundaries
         ds_filled = ds_complete.interpolate_na(
             dim='time',
             method=method,
             fill_value='extrapolate'
         )
-        # Handle remaining NaNs (e.g., at boundaries)
+        # Handle edge cases: extrapolation might produce NaNs at boundaries
+        # Use forward/backward fill for boundary values if available
+        try:
+            if missing_at_start:
+                ds_filled = ds_filled.bfill(dim='time')
+            if missing_at_end:
+                ds_filled = ds_filled.ffill(dim='time')
+        except (ModuleNotFoundError, RuntimeError):
+            # ffill/bfill not available, skip
+            logger.debug("ffill/bfill not available for boundary handling")
+        # Final fallback for any remaining NaNs
         ds_filled = ds_filled.fillna(fill_value)
     else:
         raise ValueError(
@@ -454,7 +523,7 @@ def gap_fill(
     # Check for large gaps and replace with fill_value
     max_gap_steps = int(max_gap_hours / resolution_hours)
     if max_gap_steps > 0:
-        # Identify large gaps
+        # Identify large gaps (including at boundaries)
         gap_mask = _identify_large_gaps(~is_original, max_gap_steps)
         if gap_mask.any():
             logger.warning(

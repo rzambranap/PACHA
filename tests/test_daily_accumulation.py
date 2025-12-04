@@ -221,6 +221,77 @@ class TestGapFill(unittest.TestCase):
         self.assertEqual(len(result.time), 24)
         self.assertEqual(result.attrs['gap_fill_method'], 'linear')
 
+    def test_gap_fill_missing_first_timestep(self):
+        """Test gap filling when first timestep is missing (edge case)."""
+        # Create dataset missing first hour (starts at 01:00)
+        times = pd.date_range('2023-01-15 01:00', periods=23, freq='h')
+        data = np.ones((23, 3, 3))
+
+        ds = xr.Dataset(
+            {'precipitationCal': (['time', 'lat', 'lon'], data)},
+            coords={
+                'time': times,
+                'lat': np.arange(3),
+                'lon': np.arange(3)
+            }
+        )
+
+        result = gap_fill(ds, 'gsmap', '2023-01-15', method='linear')
+
+        # Should have all 24 timesteps
+        self.assertEqual(len(result.time), 24)
+        # First timestep should be filled (not NaN)
+        first_val = result['precipitationCal'].isel(time=0).values
+        self.assertFalse(np.any(np.isnan(first_val)))
+
+    def test_gap_fill_missing_last_timestep(self):
+        """Test gap filling when last timestep is missing (edge case)."""
+        # Create dataset missing last hour (ends at 22:00)
+        times = pd.date_range('2023-01-15 00:00', periods=23, freq='h')
+        data = np.ones((23, 3, 3))
+
+        ds = xr.Dataset(
+            {'precipitationCal': (['time', 'lat', 'lon'], data)},
+            coords={
+                'time': times,
+                'lat': np.arange(3),
+                'lon': np.arange(3)
+            }
+        )
+
+        result = gap_fill(ds, 'gsmap', '2023-01-15', method='linear')
+
+        # Should have all 24 timesteps
+        self.assertEqual(len(result.time), 24)
+        # Last timestep should be filled (not NaN)
+        last_val = result['precipitationCal'].isel(time=-1).values
+        self.assertFalse(np.any(np.isnan(last_val)))
+
+    def test_gap_fill_missing_both_ends(self):
+        """Test gap filling when both first and last timesteps are missing."""
+        # Create dataset missing both ends
+        times = pd.date_range('2023-01-15 01:00', periods=22, freq='h')
+        data = np.ones((22, 3, 3))
+
+        ds = xr.Dataset(
+            {'precipitationCal': (['time', 'lat', 'lon'], data)},
+            coords={
+                'time': times,
+                'lat': np.arange(3),
+                'lon': np.arange(3)
+            }
+        )
+
+        result = gap_fill(ds, 'gsmap', '2023-01-15', method='linear')
+
+        # Should have all 24 timesteps
+        self.assertEqual(len(result.time), 24)
+        # Both ends should be filled (not NaN)
+        first_val = result['precipitationCal'].isel(time=0).values
+        last_val = result['precipitationCal'].isel(time=-1).values
+        self.assertFalse(np.any(np.isnan(first_val)))
+        self.assertFalse(np.any(np.isnan(last_val)))
+
     def test_invalid_method(self):
         """Test that invalid interpolation method raises ValueError."""
         times = pd.date_range('2023-01-15', periods=24, freq='h')
