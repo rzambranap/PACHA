@@ -409,7 +409,7 @@ class Fuser:
 
 ## Questions for Discussion
 
-1. Should we support multiple classifiers simultaneously (e.g., land/sea + k-means)?
+1. Should we support multiple classifiers simultaneously (e.g., land/sea + K-Means)?
 2. What features should be extracted by default for K-Means classification?
 3. Should we persist fitted models as pickle or use a custom format?
 4. What level of backward compatibility is required?
