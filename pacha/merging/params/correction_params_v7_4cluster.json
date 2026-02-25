@@ -1,0 +1,127 @@
+{
+  "_description": "Correction parameters for IMERG Late v7 using 4-cluster KMeans quantile matching by parts. Trained on calibration dataset v6_vs_v7_vs_qp.nc with train/test split (80/20). Correction function: a*x^2 + b*x + c. Each cluster has land and sea parameters.",
+  "_n_clusters": 4,
+  "_method": "quantile_matching_by_parts",
+  "_reference_variable": "rain_rate",
+  "_sep_land_sea": true,
+  "0": {
+    "land_params": {
+      "method": "qmatch_by_parts",
+      "offset": 0.28,
+      "p1_popt": [
+        -7.8845103,
+        3.09545874,
+        0.05430687
+      ],
+      "p2_popt": [
+        0.05024228,
+        1.41306928,
+        -0.56409719
+      ]
+    },
+    "sea_params": {
+      "method": "qmatch_by_parts",
+      "offset": 0.29999998,
+      "p1_popt": [
+        -3.59585767,
+        1.94837784,
+        0.01594867
+      ],
+      "p2_popt": [
+        -0.01049602,
+        2.27748851,
+        -0.65378323
+      ]
+    }
+  },
+  "1": {
+    "land_params": {
+      "method": "qmatch_by_parts",
+      "offset": 3.03999996,
+      "p1_popt": [
+        0.09188441,
+        0.27139429,
+        0.05109435
+      ],
+      "p2_popt": [
+        -0.00786147,
+        1.4993736,
+        -3.12235754
+      ]
+    },
+    "sea_params": {
+      "method": "qmatch_by_parts",
+      "offset": 1.93999994,
+      "p1_popt": [
+        0.10051799,
+        0.65608267,
+        0.01131544
+      ],
+      "p2_popt": [
+        -0.00155365,
+        1.20231203,
+        -0.59351105
+      ]
+    }
+  },
+  "2": {
+    "land_params": {
+      "method": "qmatch_by_parts",
+      "offset": 0.0,
+      "p1_popt": [
+        1.0,
+        1.0,
+        1.9311315e-26
+      ],
+      "p2_popt": [
+        -0.30477232,
+        4.48554727,
+        0.16862981
+      ]
+    },
+    "sea_params": {
+      "method": "qmatch_by_parts",
+      "offset": 0.0,
+      "p1_popt": [
+        1.0,
+        1.0,
+        1.9311315e-26
+      ],
+      "p2_popt": [
+        -0.4692104,
+        4.76597812,
+        0.10280709
+      ]
+    }
+  },
+  "3": {
+    "land_params": {
+      "method": "qmatch_by_parts",
+      "offset": 0.0,
+      "p1_popt": [
+        1.0,
+        1.0,
+        0.00223244
+      ],
+      "p2_popt": [
+        -0.00445172,
+        2.2822975,
+        0.27504163
+      ]
+    },
+    "sea_params": {
+      "method": "qmatch_by_parts",
+      "offset": 0.0,
+      "p1_popt": [
+        1.0,
+        1.0,
+        0.0055427
+      ],
+      "p2_popt": [
+        -0.0740338,
+        3.69330281,
+        0.17988313
+      ]
+    }
+  }
+}
