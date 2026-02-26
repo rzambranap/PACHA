@@ -98,6 +98,26 @@ satellite_data = open_mf_imerg(file_paths, field='precipitationCal')
 regional_data = get_data_in_bbox(satellite_data, bbox)
 ```
 
+## Scripts
+
+### SPP Correction
+
+Apply a trained `ClusteredCorrector` to a folder of NetCDF files:
+
+```bash
+python scripts/run_spp_correction.py \
+    --input-folder /path/to/inputs \
+    --corrector-pkl /path/to/corrector.pkl \
+    --start-date 2024-01-01 \
+    --end-date 2024-01-31 \
+    --target-variable imerg_v7 \
+    --output-folder /path/to/outputs
+```
+
+The corrector pickle is produced by training a `ClusteredCorrector` and calling
+`corrector.save('corrector.pkl')`. Run `python scripts/run_spp_correction.py --help`
+for the full list of options.
+
 ## Documentation
 
 ### Wiki
